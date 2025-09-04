@@ -1,0 +1,23 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: example-app-helm
+spec:
+  source:
+    path: examples/helm/chart
+    helm:
+      values: |
+        replicaCount: 3
+        image:
+          tag: "1.25.1"
+        resources:
+          limits:
+            cpu: 210m
+            memory: 256Mi
+      parameters:
+        - name: service.type
+          value: "NodePort"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  project: default

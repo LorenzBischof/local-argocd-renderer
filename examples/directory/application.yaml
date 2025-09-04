@@ -1,0 +1,17 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: nginx-directory
+spec:
+  source:
+    repoURL: https://github.com/my-org/k8s-manifests
+    path: manifests/nginx
+    targetRevision: main
+    directory:
+      recurse: true
+      include: "*.yaml"
+      exclude: "*-test.yaml"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  project: default

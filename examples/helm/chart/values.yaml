@@ -1,0 +1,43 @@
+replicaCount: 2
+
+image:
+  repository: nginx
+  tag: "1.25.0"
+  pullPolicy: IfNotPresent
+
+nameOverride: ""
+fullnameOverride: ""
+
+service:
+  type: ClusterIP
+  port: 80
+
+configMap:
+  data:
+    nginx.conf: |
+      server {
+          listen 80;
+          server_name localhost;
+          location / {
+              root /usr/share/nginx/html;
+              index index.html index.htm;
+          }
+      }
+    app.properties: |
+      app.name=example-app
+      app.version=1.0.0
+      debug.enabled=true
+
+resources:
+  limits:
+    cpu: 100m
+    memory: 128Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

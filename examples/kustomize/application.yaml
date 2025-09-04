@@ -1,0 +1,19 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: nginx-kustomize
+spec:
+  source:
+    path: manifests/overlays/production
+    kustomize:
+      images:
+        - nginx=nginx:1.25.0
+      labels:
+        - includeSelectors: true
+          pairs:
+            environment: production
+      namePrefix: prod-
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: nginx-prod
+  project: default
