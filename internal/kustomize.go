@@ -112,6 +112,8 @@ func (kr *kustomizeRenderer) buildKustomizeArgs(workDir string, opts *KustomizeO
 		args = append(args, buildOpts...)
 	}
 
+	args = append(args, "--enable-helm")
+
 	return args
 }
 
