@@ -22,9 +22,14 @@ func GetAppSourceType(ctx context.Context, source *ApplicationSource, appPath, r
 	}
 
 	// If not explicit, detect based on files in the directory
-	searchPath := appPath
-	if searchPath == "" {
+	// Combine repoPath with appPath to get the full path to check
+	var searchPath string
+	if appPath == "" || appPath == repoPath {
+		// If appPath is empty or same as repoPath, just use repoPath
 		searchPath = repoPath
+	} else {
+		// Combine repoPath with appPath (assuming appPath is relative)
+		searchPath = filepath.Join(repoPath, appPath)
 	}
 
 	return detectSourceTypeFromDirectory(searchPath)
