@@ -1,6 +1,6 @@
 module github.com/lorenzbischof/local-argocd-renderer
 
-go 1.25.0
+go 1.24.0
 
 require (
 	github.com/google/uuid v1.6.1-0.20241114170450-2d3c2a9cc518
