@@ -7,8 +7,6 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-
-	"github.com/argoproj/argo-cd/v3/pkg/apis/application/v1alpha1"
 )
 
 func TestKustomizeRenderer_NamePrefixOption(t *testing.T) {
@@ -22,11 +20,11 @@ func TestKustomizeRenderer_NamePrefixOption(t *testing.T) {
 	createTestKustomization(t, tempDir)
 
 	// Create ArgoCD Application with namePrefix option
-	app := &v1alpha1.Application{
-		Spec: v1alpha1.ApplicationSpec{
-			Source: &v1alpha1.ApplicationSource{
+	app := &Application{
+		Spec: ApplicationSpec{
+			Source: &ApplicationSource{
 				Path: "",
-				Kustomize: &v1alpha1.ApplicationSourceKustomize{
+				Kustomize: &ApplicationSourceKustomize{
 					NamePrefix: "test-prefix-",
 				},
 			},
@@ -79,12 +77,12 @@ func TestKustomizeRenderer_ImageOverrideOption(t *testing.T) {
 	createTestKustomization(t, tempDir)
 
 	// Create ArgoCD Application with image override
-	app := &v1alpha1.Application{
-		Spec: v1alpha1.ApplicationSpec{
-			Source: &v1alpha1.ApplicationSource{
+	app := &Application{
+		Spec: ApplicationSpec{
+			Source: &ApplicationSource{
 				Path: "",
-				Kustomize: &v1alpha1.ApplicationSourceKustomize{
-					Images: v1alpha1.KustomizeImages{
+				Kustomize: &ApplicationSourceKustomize{
+					Images: []KustomizeImage{
 						"nginx:latest=nginx:1.20",
 					},
 				},
@@ -143,9 +141,9 @@ func TestKustomizeRenderer_KustomizeOptions(t *testing.T) {
 	createTestKustomization(t, tempDir)
 
 	// Create ArgoCD Application without kustomize options
-	app := &v1alpha1.Application{
-		Spec: v1alpha1.ApplicationSpec{
-			Source: &v1alpha1.ApplicationSource{
+	app := &Application{
+		Spec: ApplicationSpec{
+			Source: &ApplicationSource{
 				Path: "",
 				// No Kustomize options in the application spec
 			},

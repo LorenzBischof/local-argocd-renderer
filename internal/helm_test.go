@@ -6,8 +6,6 @@ import (
 	"os/exec"
 	"strings"
 	"testing"
-
-	"github.com/argoproj/argo-cd/v3/pkg/apis/application/v1alpha1"
 )
 
 func TestHelmRenderer_SkipCrdsOption(t *testing.T) {
@@ -21,11 +19,11 @@ func TestHelmRenderer_SkipCrdsOption(t *testing.T) {
 	createTestHelmChart(t, tempDir)
 
 	// Create ArgoCD Application with skipCrds option
-	app := &v1alpha1.Application{
-		Spec: v1alpha1.ApplicationSpec{
-			Source: &v1alpha1.ApplicationSource{
+	app := &Application{
+		Spec: ApplicationSpec{
+			Source: &ApplicationSource{
 				Path: "",
-				Helm: &v1alpha1.ApplicationSourceHelm{
+				Helm: &ApplicationSourceHelm{
 					SkipCrds: true,
 				},
 			},
@@ -79,11 +77,11 @@ func TestHelmRenderer_HelmOptionsOverride(t *testing.T) {
 	createTestHelmChart(t, tempDir)
 
 	// Create ArgoCD Application without skipCrds in spec
-	app := &v1alpha1.Application{
-		Spec: v1alpha1.ApplicationSpec{
-			Source: &v1alpha1.ApplicationSource{
+	app := &Application{
+		Spec: ApplicationSpec{
+			Source: &ApplicationSource{
 				Path: "",
-				Helm: &v1alpha1.ApplicationSourceHelm{
+				Helm: &ApplicationSourceHelm{
 					// No SkipCrds option here
 				},
 			},

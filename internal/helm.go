@@ -24,41 +24,50 @@ func (hr *helmRenderer) Execute(ctx context.Context, renderCtx *RenderContext, o
 		return fmt.Errorf("helm configuration not found in application source")
 	}
 
-	args, err := hr.buildHelmArgs(renderCtx, opts)
+	args, tmpFiles, err := hr.buildHelmArgs(renderCtx, opts)
 	if err != nil {
 		return err
 	}
 
+	// Clean up temporary files after command execution
+	defer func() {
+		for _, tmpFile := range tmpFiles {
+			os.RemoveAll(tmpFile)
+		}
+	}()
+
 	return hr.runHelmCommand(ctx, args, renderCtx.RepoPath, verbose)
 }
 
-func (hr *helmRenderer) buildHelmArgs(renderCtx *RenderContext, opts *HelmOptions) ([]string, error) {
+func (hr *helmRenderer) buildHelmArgs(renderCtx *RenderContext, opts *HelmOptions) ([]string, []string, error) {
 	args := []string{"template", hr.getReleaseName(renderCtx), hr.getChartPath(renderCtx)}
+	var tmpFiles []string
 
 	args = hr.addNamespace(args, renderCtx)
 	args = hr.addKubeVersion(args, renderCtx)
 
 	valueArgs, err := hr.addValueFiles(args, renderCtx)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	args = valueArgs
 
-	inlineArgs, err := hr.addInlineValues(args, renderCtx)
+	inlineArgs, inlineTmpFiles, err := hr.addInlineValues(args, renderCtx)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	args = inlineArgs
+	tmpFiles = append(tmpFiles, inlineTmpFiles...)
 
 	args = hr.addParameters(args, renderCtx)
 
 	fileArgs, err := hr.addFileParameters(args, renderCtx)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	args = fileArgs
 
-	return hr.addSkipOptions(args, renderCtx, opts), nil
+	return hr.addSkipOptions(args, renderCtx, opts), tmpFiles, nil
 }
 
 func (hr *helmRenderer) getReleaseName(renderCtx *RenderContext) string {
@@ -72,7 +81,7 @@ func (hr *helmRenderer) getChartPath(renderCtx *RenderContext) string {
 	if renderCtx.Source.Path == "" {
 		return "."
 	}
-	return path.Join(renderCtx.RepoPath, renderCtx.Source.Path)
+	return renderCtx.Source.Path
 }
 
 func (hr *helmRenderer) addNamespace(args []string, renderCtx *RenderContext) []string {
@@ -104,25 +113,24 @@ func (hr *helmRenderer) addValueFiles(args []string, renderCtx *RenderContext) (
 	return args, nil
 }
 
-func (hr *helmRenderer) addInlineValues(args []string, renderCtx *RenderContext) ([]string, error) {
+func (hr *helmRenderer) addInlineValues(args []string, renderCtx *RenderContext) ([]string, []string, error) {
 	if renderCtx.Source.Helm.ValuesIsEmpty() {
-		return args, nil
+		return args, nil, nil
 	}
 
 	rand, err := uuid.NewRandom()
 	if err != nil {
-		return nil, fmt.Errorf("error generating random filename for Helm values file: %w", err)
+		return nil, nil, fmt.Errorf("error generating random filename for Helm values file: %w", err)
 	}
 
 	tmpFile := path.Join(os.TempDir(), rand.String())
-	defer os.RemoveAll(tmpFile)
 
 	err = os.WriteFile(tmpFile, renderCtx.Source.Helm.ValuesYAML(), 0o644)
 	if err != nil {
-		return nil, fmt.Errorf("error writing helm values file: %w", err)
+		return nil, nil, fmt.Errorf("error writing helm values file: %w", err)
 	}
 
-	return append(args, "--values", tmpFile), nil
+	return append(args, "--values", tmpFile), []string{tmpFile}, nil
 }
 
 func (hr *helmRenderer) addParameters(args []string, renderCtx *RenderContext) []string {

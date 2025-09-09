@@ -8,7 +8,6 @@ import (
 
 	"sigs.k8s.io/yaml"
 
-	"github.com/argoproj/argo-cd/v3/pkg/apis/application/v1alpha1"
 	"github.com/lorenzbischof/local-argocd-renderer/internal"
 )
 
@@ -56,7 +55,7 @@ func parseFlags() *options {
 	return opts
 }
 
-func buildRenderRequest(app *v1alpha1.Application, opts *options) *internal.RenderRequest {
+func buildRenderRequest(app *internal.Application, opts *options) *internal.RenderRequest {
 	req := &internal.RenderRequest{
 		Application: app,
 		RepoPath:    opts.repoPath,
@@ -92,24 +91,39 @@ func exitWithUsage(msg string) {
 	os.Exit(1)
 }
 
-func loadApplication(filePath string) (*v1alpha1.Application, error) {
+func loadApplication(filePath string) (*internal.Application, error) {
 	data, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read application file: %w", err)
 	}
 
-	var app v1alpha1.Application
-	if err := yaml.Unmarshal(data, &app); err != nil {
+	var appYaml struct {
+		APIVersion string `yaml:"apiVersion"`
+		Kind       string `yaml:"kind"`
+		Metadata   struct {
+			Name string `yaml:"name"`
+		} `yaml:"metadata"`
+		Spec struct {
+			Source      *internal.ApplicationSource     `yaml:"source"`
+			Destination internal.ApplicationDestination `yaml:"destination"`
+		} `yaml:"spec"`
+	}
+
+	if err := yaml.Unmarshal(data, &appYaml); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal application YAML: %w", err)
 	}
 
-	if app.Kind != "Application" {
-		return nil, fmt.Errorf("expected kind 'Application', got '%s'", app.Kind)
+	if appYaml.Kind != "Application" {
+		return nil, fmt.Errorf("expected kind 'Application', got '%s'", appYaml.Kind)
 	}
 
-	if app.APIVersion == "" {
-		app.APIVersion = "argoproj.io/v1alpha1"
+	app := &internal.Application{
+		Name: appYaml.Metadata.Name,
+		Spec: internal.ApplicationSpec{
+			Source:      appYaml.Spec.Source,
+			Destination: appYaml.Spec.Destination,
+		},
 	}
 
-	return &app, nil
+	return app, nil
 }

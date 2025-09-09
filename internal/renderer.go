@@ -3,8 +3,6 @@ package internal
 import (
 	"context"
 	"fmt"
-
-	"github.com/argoproj/argo-cd/v3/pkg/apis/application/v1alpha1"
 )
 
 type Renderer interface {
@@ -35,7 +33,17 @@ func (r *renderer) ExecuteCommand(ctx context.Context, req *RenderRequest, verbo
 		return fmt.Errorf("no source found in application")
 	}
 
-	sourceType := r.detectSourceType(source)
+	// Use our lightweight GetAppSourceType for source type detection
+	appPath := req.RepoPath
+	if source.Path != "" {
+		appPath = source.Path
+	}
+
+	sourceType, err := GetAppSourceType(ctx, source, appPath, req.RepoPath, req.Application.Name)
+	if err != nil {
+		return fmt.Errorf("error determining source type: %w", err)
+	}
+
 	renderCtx := r.buildRenderContext(req, source, sourceType)
 
 	return r.executeByType(ctx, renderCtx, req, verbose)
@@ -51,30 +59,12 @@ func (r *renderer) validateRequest(req *RenderRequest) error {
 	return nil
 }
 
-func (r *renderer) getSource(app *v1alpha1.Application) *v1alpha1.ApplicationSource {
-	if app.Spec.HasMultipleSources() {
-		return app.Spec.GetSourcePtrByIndex(0)
-	}
+func (r *renderer) getSource(app *Application) *ApplicationSource {
+	// Simplified - we only support single source for now
 	return app.Spec.Source
 }
 
-func (r *renderer) detectSourceType(source *v1alpha1.ApplicationSource) v1alpha1.ApplicationSourceType {
-	if source.Helm != nil {
-		return v1alpha1.ApplicationSourceTypeHelm
-	}
-	if source.Kustomize != nil {
-		return v1alpha1.ApplicationSourceTypeKustomize
-	}
-	if source.Directory != nil {
-		return v1alpha1.ApplicationSourceTypeDirectory
-	}
-	if source.Plugin != nil {
-		return v1alpha1.ApplicationSourceTypePlugin
-	}
-	return v1alpha1.ApplicationSourceTypeDirectory
-}
-
-func (r *renderer) buildRenderContext(req *RenderRequest, source *v1alpha1.ApplicationSource, sourceType v1alpha1.ApplicationSourceType) *RenderContext {
+func (r *renderer) buildRenderContext(req *RenderRequest, source *ApplicationSource, sourceType ApplicationSourceType) *RenderContext {
 	return &RenderContext{
 		Application: req.Application,
 		Source:      source,
@@ -88,23 +78,13 @@ func (r *renderer) buildRenderContext(req *RenderRequest, source *v1alpha1.Appli
 
 func (r *renderer) executeByType(ctx context.Context, renderCtx *RenderContext, req *RenderRequest, verbose bool) error {
 	switch renderCtx.SourceType {
-	case v1alpha1.ApplicationSourceTypeHelm:
+	case ApplicationSourceTypeHelm:
 		return r.helm.Execute(ctx, renderCtx, req.HelmOptions, verbose)
-	case v1alpha1.ApplicationSourceTypeKustomize:
+	case ApplicationSourceTypeKustomize:
 		return r.kustomize.Execute(ctx, renderCtx, req.KustomizeOptions, verbose)
-	case v1alpha1.ApplicationSourceTypeDirectory:
+	case ApplicationSourceTypeDirectory:
 		return r.directory.Execute(ctx, renderCtx, verbose)
 	default:
 		return fmt.Errorf("unsupported source type: %s", renderCtx.SourceType)
 	}
-}
-
-type RenderContext struct {
-	Application *v1alpha1.Application
-	Source      *v1alpha1.ApplicationSource
-	RepoPath    string
-	AppName     string
-	Namespace   string
-	KubeVersion string
-	SourceType  v1alpha1.ApplicationSourceType
 }

@@ -7,8 +7,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-
-	"github.com/argoproj/argo-cd/v3/pkg/apis/application/v1alpha1"
 )
 
 type directoryRenderer struct{}
@@ -50,7 +48,7 @@ func (dr *directoryRenderer) printVerboseInfo(searchPath string, recurse bool) {
 	fmt.Fprintf(os.Stderr, "---\n")
 }
 
-func (dr *directoryRenderer) walkAndOutputFiles(ctx context.Context, searchPath string, directory *v1alpha1.ApplicationSourceDirectory, recurse bool) error {
+func (dr *directoryRenderer) walkAndOutputFiles(ctx context.Context, searchPath string, directory *ApplicationSourceDirectory, recurse bool) error {
 	first := true
 
 	return filepath.Walk(searchPath, func(path string, info os.FileInfo, err error) error {
@@ -81,7 +79,7 @@ func (dr *directoryRenderer) handleDirectory(path, searchPath string, recurse bo
 	return nil
 }
 
-func (dr *directoryRenderer) shouldIncludeFile(path, searchPath string, info os.FileInfo, directory *v1alpha1.ApplicationSourceDirectory) bool {
+func (dr *directoryRenderer) shouldIncludeFile(path, searchPath string, info os.FileInfo, directory *ApplicationSourceDirectory) bool {
 	ext := strings.ToLower(filepath.Ext(info.Name()))
 	if !dr.isManifestFile(ext) {
 		return false

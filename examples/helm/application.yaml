@@ -4,7 +4,7 @@ metadata:
   name: example-app-helm
 spec:
   source:
-    path: examples/helm/chart
+    path: chart
     helm:
       values: |
         replicaCount: 3

@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/argoproj/argo-cd/v3/pkg/apis/application/v1alpha1"
 	"gopkg.in/yaml.v3"
 )
 
@@ -22,19 +21,19 @@ func NewKustomizeRenderer() KustomizeRenderer {
 
 // kustomizationYaml represents the structure of kustomization.yaml file
 type kustomizationYaml struct {
-	APIVersion        string                    `yaml:"apiVersion,omitempty"`
-	Kind              string                    `yaml:"kind,omitempty"`
-	Resources         []string                  `yaml:"resources,omitempty"`
-	Images            []kustomizeImage          `yaml:"images,omitempty"`
-	CommonLabels      map[string]string         `yaml:"commonLabels,omitempty"`
-	CommonAnnotations map[string]string         `yaml:"commonAnnotations,omitempty"`
-	NamePrefix        string                    `yaml:"namePrefix,omitempty"`
-	NameSuffix        string                    `yaml:"nameSuffix,omitempty"`
-	Namespace         string                    `yaml:"namespace,omitempty"`
-	Replicas          []kustomizeReplica        `yaml:"replicas,omitempty"`
-	Patches           []v1alpha1.KustomizePatch `yaml:"patches,omitempty"`
-	Components        []string                  `yaml:"components,omitempty"`
-	GeneratorOptions  *generatorOptions         `yaml:"generatorOptions,omitempty"`
+	APIVersion        string             `yaml:"apiVersion,omitempty"`
+	Kind              string             `yaml:"kind,omitempty"`
+	Resources         []string           `yaml:"resources,omitempty"`
+	Images            []kustomizeImage   `yaml:"images,omitempty"`
+	CommonLabels      map[string]string  `yaml:"commonLabels,omitempty"`
+	CommonAnnotations map[string]string  `yaml:"commonAnnotations,omitempty"`
+	NamePrefix        string             `yaml:"namePrefix,omitempty"`
+	NameSuffix        string             `yaml:"nameSuffix,omitempty"`
+	Namespace         string             `yaml:"namespace,omitempty"`
+	Replicas          []kustomizeReplica `yaml:"replicas,omitempty"`
+	Patches           []KustomizePatch   `yaml:"patches,omitempty"`
+	Components        []string           `yaml:"components,omitempty"`
+	GeneratorOptions  *generatorOptions  `yaml:"generatorOptions,omitempty"`
 }
 
 // kustomizeImage represents an image override in kustomization.yaml
@@ -136,7 +135,7 @@ func (kr *kustomizeRenderer) printVerboseInfo(binary string, args []string, work
 }
 
 // hasKustomizeOptions checks if any ArgoCD kustomize options are specified
-func (kr *kustomizeRenderer) hasKustomizeOptions(kustomize *v1alpha1.ApplicationSourceKustomize) bool {
+func (kr *kustomizeRenderer) hasKustomizeOptions(kustomize *ApplicationSourceKustomize) bool {
 	return len(kustomize.Images) > 0 ||
 		len(kustomize.CommonLabels) > 0 ||
 		len(kustomize.CommonAnnotations) > 0 ||
@@ -151,7 +150,7 @@ func (kr *kustomizeRenderer) hasKustomizeOptions(kustomize *v1alpha1.Application
 }
 
 // createKustomizationOverlay creates a temporary kustomization overlay with ArgoCD options
-func (kr *kustomizeRenderer) createKustomizationOverlay(basePath string, kustomize *v1alpha1.ApplicationSourceKustomize) (string, error) {
+func (kr *kustomizeRenderer) createKustomizationOverlay(basePath string, kustomize *ApplicationSourceKustomize) (string, error) {
 	// Create temporary directory
 	tempDir, err := os.MkdirTemp("", "kustomize-overlay-")
 	if err != nil {
