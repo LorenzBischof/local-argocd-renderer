@@ -20,10 +20,6 @@ func NewHelmRenderer() HelmRenderer {
 }
 
 func (hr *helmRenderer) Execute(ctx context.Context, renderCtx *RenderContext, opts *HelmOptions, verbose bool) error {
-	if renderCtx.Source.Helm == nil {
-		return fmt.Errorf("helm configuration not found in application source")
-	}
-
 	args, tmpFiles, err := hr.buildHelmArgs(renderCtx, opts)
 	if err != nil {
 		return err
