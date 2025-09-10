@@ -67,7 +67,7 @@ func (hr *helmRenderer) buildHelmArgs(renderCtx *RenderContext, opts *HelmOption
 }
 
 func (hr *helmRenderer) getReleaseName(renderCtx *RenderContext) string {
-	if renderCtx.Source.Helm.ReleaseName != "" {
+	if renderCtx.Source.Helm != nil && renderCtx.Source.Helm.ReleaseName != "" {
 		return renderCtx.Source.Helm.ReleaseName
 	}
 	return renderCtx.AppName
@@ -96,6 +96,9 @@ func (hr *helmRenderer) addKubeVersion(args []string, renderCtx *RenderContext) 
 }
 
 func (hr *helmRenderer) addValueFiles(args []string, renderCtx *RenderContext) ([]string, error) {
+	if renderCtx.Source.Helm == nil {
+		return args, nil
+	}
 	for _, valueFile := range renderCtx.Source.Helm.ValueFiles {
 		resolvedPath := hr.resolveValueFilePath(renderCtx.Source.Path, renderCtx.RepoPath, valueFile)
 		if _, err := os.Stat(resolvedPath); err != nil {
@@ -110,7 +113,7 @@ func (hr *helmRenderer) addValueFiles(args []string, renderCtx *RenderContext) (
 }
 
 func (hr *helmRenderer) addInlineValues(args []string, renderCtx *RenderContext) ([]string, []string, error) {
-	if renderCtx.Source.Helm.ValuesIsEmpty() {
+	if renderCtx.Source.Helm == nil || renderCtx.Source.Helm.ValuesIsEmpty() {
 		return args, nil, nil
 	}
 
@@ -130,6 +133,9 @@ func (hr *helmRenderer) addInlineValues(args []string, renderCtx *RenderContext)
 }
 
 func (hr *helmRenderer) addParameters(args []string, renderCtx *RenderContext) []string {
+	if renderCtx.Source.Helm == nil {
+		return args
+	}
 	for _, param := range renderCtx.Source.Helm.Parameters {
 		flag := "--set"
 		if param.ForceString {
@@ -141,6 +147,9 @@ func (hr *helmRenderer) addParameters(args []string, renderCtx *RenderContext) [
 }
 
 func (hr *helmRenderer) addFileParameters(args []string, renderCtx *RenderContext) ([]string, error) {
+	if renderCtx.Source.Helm == nil {
+		return args, nil
+	}
 	for _, param := range renderCtx.Source.Helm.FileParameters {
 		resolvedPath := hr.resolveValueFilePath(renderCtx.Source.Path, renderCtx.RepoPath, param.Path)
 		if _, err := os.Stat(resolvedPath); err != nil {
@@ -152,7 +161,7 @@ func (hr *helmRenderer) addFileParameters(args []string, renderCtx *RenderContex
 }
 
 func (hr *helmRenderer) addSkipOptions(args []string, renderCtx *RenderContext, opts *HelmOptions) []string {
-	if renderCtx.Source.Helm.SkipCrds || (opts != nil && opts.SkipCrds) {
+	if (renderCtx.Source.Helm != nil && renderCtx.Source.Helm.SkipCrds) || (opts != nil && opts.SkipCrds) {
 		args = append(args, "--skip-crds")
 	}
 	if opts != nil && opts.SkipTests {
