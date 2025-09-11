@@ -19,10 +19,10 @@ func NewHelmRenderer() HelmRenderer {
 	return &helmRenderer{}
 }
 
-func (hr *helmRenderer) Execute(ctx context.Context, renderCtx *RenderContext, opts *HelmOptions, verbose bool) error {
+func (hr *helmRenderer) Execute(ctx context.Context, renderCtx *RenderContext, opts *HelmOptions, verbose bool) (*RenderResult, error) {
 	args, tmpFiles, err := hr.buildHelmArgs(renderCtx, opts)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Clean up temporary files after command execution
@@ -194,17 +194,30 @@ func (hr *helmRenderer) removeArg(args []string, argToRemove string) []string {
 	return args
 }
 
-func (hr *helmRenderer) runHelmCommand(ctx context.Context, args []string, workDir string, verbose bool) error {
+func (hr *helmRenderer) runHelmCommand(ctx context.Context, args []string, workDir string, verbose bool) (*RenderResult, error) {
 	cmd := exec.CommandContext(ctx, "helm", args...)
 	cmd.Dir = workDir
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+
+	var stdout, stderr strings.Builder
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
 
 	if verbose {
 		hr.printVerboseInfo(args, workDir)
 	}
 
-	return cmd.Run()
+	err := cmd.Run()
+
+	result := &RenderResult{
+		Output: stdout.String(),
+		Error:  stderr.String(),
+	}
+
+	if err != nil {
+		return result, fmt.Errorf("helm command failed: %w", err)
+	}
+
+	return result, nil
 }
 
 func (hr *helmRenderer) printVerboseInfo(args []string, workDir string) {

@@ -39,30 +39,16 @@ func TestKustomizeRenderer_NamePrefixOption(t *testing.T) {
 		Namespace:   "default",
 	}
 
-	// Capture stdout to verify the namePrefix is applied
-	r, w, _ := os.Pipe()
-	originalStdout := os.Stdout
-	defer func() { os.Stdout = originalStdout }()
-	os.Stdout = w
-
 	renderer := NewKustomizeRenderer()
-	err := renderer.Execute(context.Background(), renderCtx, nil, false)
-
-	w.Close()
-	os.Stdout = originalStdout
-
-	// Read captured output
-	buf := make([]byte, 2048)
-	n, _ := r.Read(buf)
-	output := string(buf[:n])
+	result, err := renderer.Execute(context.Background(), renderCtx, nil, false)
 
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
 
 	// Verify that namePrefix was applied to the deployment name
-	if !strings.Contains(output, "name: test-prefix-test-deployment") {
-		t.Errorf("Expected namePrefix 'test-prefix-' to be applied to deployment name, but output was: %s", output)
+	if !strings.Contains(result.Output, "name: test-prefix-test-deployment") {
+		t.Errorf("Expected namePrefix 'test-prefix-' to be applied to deployment name, but output was: %s", result.Output)
 	}
 }
 
@@ -98,35 +84,21 @@ func TestKustomizeRenderer_ImageOverrideOption(t *testing.T) {
 		Namespace:   "default",
 	}
 
-	// Capture stdout to verify the image is overridden
-	r, w, _ := os.Pipe()
-	originalStdout := os.Stdout
-	defer func() { os.Stdout = originalStdout }()
-	os.Stdout = w
-
 	renderer := NewKustomizeRenderer()
-	err := renderer.Execute(context.Background(), renderCtx, nil, false)
-
-	w.Close()
-	os.Stdout = originalStdout
-
-	// Read captured output
-	buf := make([]byte, 2048)
-	n, _ := r.Read(buf)
-	output := string(buf[:n])
+	result, err := renderer.Execute(context.Background(), renderCtx, nil, false)
 
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
 
 	// Verify that image was overridden from nginx:latest to nginx:1.20
-	if !strings.Contains(output, "image: nginx:1.20") {
-		t.Errorf("Expected image override to nginx:1.20, but output was: %s", output)
+	if !strings.Contains(result.Output, "image: nginx:1.20") {
+		t.Errorf("Expected image override to nginx:1.20, but output was: %s", result.Output)
 	}
 
 	// Verify old image is not present
-	if strings.Contains(output, "image: nginx:latest") {
-		t.Errorf("Expected original image nginx:latest to be replaced, but it's still present in output: %s", output)
+	if strings.Contains(result.Output, "image: nginx:latest") {
+		t.Errorf("Expected original image nginx:latest to be replaced, but it's still present in output: %s", result.Output)
 	}
 }
 
@@ -171,7 +143,7 @@ func TestKustomizeRenderer_KustomizeOptions(t *testing.T) {
 	os.Stderr = w
 
 	renderer := NewKustomizeRenderer()
-	err := renderer.Execute(context.Background(), renderCtx, kustomizeOpts, true)
+	_, err := renderer.Execute(context.Background(), renderCtx, kustomizeOpts, true)
 
 	w.Close()
 	os.Stderr = originalStderr

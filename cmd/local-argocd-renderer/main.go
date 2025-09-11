@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 
 	renderer "github.com/lorenzbischof/local-argocd-renderer"
@@ -31,8 +32,16 @@ func main() {
 	req := buildRenderRequest(app, opts)
 
 	r := renderer.NewRenderer()
-	err = r.ExecuteCommand(context.Background(), req, opts.verbose)
+	result, err := r.ExecuteCommand(context.Background(), req, opts.verbose)
 	exitOnError(err, "executing command")
+
+	// Print the output to stdout
+	fmt.Print(result.Output)
+
+	// Print any error output to stderr
+	if result.Error != "" {
+		fmt.Fprint(os.Stderr, result.Error)
+	}
 }
 
 func parseFlags() *options {
@@ -136,7 +145,9 @@ func loadApplication(filePath string) (*renderer.Application, error) {
 	}
 
 	app := &renderer.Application{
-		Name: appYaml.Metadata.Name,
+		ObjectMeta: metav1.ObjectMeta{
+			Name: appYaml.Metadata.Name,
+		},
 		Spec: renderer.ApplicationSpec{
 			Source:      appYaml.Spec.Source,
 			Destination: appYaml.Spec.Destination,

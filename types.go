@@ -165,15 +165,21 @@ type RenderContext struct {
 	SourceType  ApplicationSourceType
 }
 
+// RenderResult represents the result of a rendering operation
+type RenderResult struct {
+	Output string
+	Error  string
+}
+
 // Renderer interfaces
 type HelmRenderer interface {
-	Execute(ctx context.Context, renderCtx *RenderContext, opts *HelmOptions, verbose bool) error
+	Execute(ctx context.Context, renderCtx *RenderContext, opts *HelmOptions, verbose bool) (*RenderResult, error)
 }
 
 type KustomizeRenderer interface {
-	Execute(ctx context.Context, renderCtx *RenderContext, opts *KustomizeOptions, verbose bool) error
+	Execute(ctx context.Context, renderCtx *RenderContext, opts *KustomizeOptions, verbose bool) (*RenderResult, error)
 }
 
 type DirectoryRenderer interface {
-	Execute(ctx context.Context, renderCtx *RenderContext, verbose bool) error
+	Execute(ctx context.Context, renderCtx *RenderContext, verbose bool) (*RenderResult, error)
 }

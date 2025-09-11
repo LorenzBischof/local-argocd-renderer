@@ -6,7 +6,7 @@ import (
 )
 
 type Renderer interface {
-	ExecuteCommand(ctx context.Context, req *RenderRequest, verbose bool) error
+	ExecuteCommand(ctx context.Context, req *RenderRequest, verbose bool) (*RenderResult, error)
 }
 
 type renderer struct {
@@ -23,14 +23,14 @@ func NewRenderer() Renderer {
 	}
 }
 
-func (r *renderer) ExecuteCommand(ctx context.Context, req *RenderRequest, verbose bool) error {
+func (r *renderer) ExecuteCommand(ctx context.Context, req *RenderRequest, verbose bool) (*RenderResult, error) {
 	if err := r.validateRequest(req); err != nil {
-		return err
+		return nil, err
 	}
 
 	source := r.getSource(req.Application)
 	if source == nil {
-		return fmt.Errorf("no source found in application")
+		return nil, fmt.Errorf("no source found in application")
 	}
 
 	// Use our lightweight GetAppSourceType for source type detection
@@ -41,7 +41,7 @@ func (r *renderer) ExecuteCommand(ctx context.Context, req *RenderRequest, verbo
 
 	sourceType, err := GetAppSourceType(ctx, source, appPath, req.RepoPath, req.Application.Name)
 	if err != nil {
-		return fmt.Errorf("error determining source type: %w", err)
+		return nil, fmt.Errorf("error determining source type: %w", err)
 	}
 
 	renderCtx := r.buildRenderContext(req, source, sourceType)
@@ -76,7 +76,7 @@ func (r *renderer) buildRenderContext(req *RenderRequest, source *ApplicationSou
 	}
 }
 
-func (r *renderer) executeByType(ctx context.Context, renderCtx *RenderContext, req *RenderRequest, verbose bool) error {
+func (r *renderer) executeByType(ctx context.Context, renderCtx *RenderContext, req *RenderRequest, verbose bool) (*RenderResult, error) {
 	switch renderCtx.SourceType {
 	case ApplicationSourceTypeHelm:
 		return r.helm.Execute(ctx, renderCtx, req.HelmOptions, verbose)
@@ -85,6 +85,6 @@ func (r *renderer) executeByType(ctx context.Context, renderCtx *RenderContext, 
 	case ApplicationSourceTypeDirectory:
 		return r.directory.Execute(ctx, renderCtx, verbose)
 	default:
-		return fmt.Errorf("unsupported source type: %s", renderCtx.SourceType)
+		return nil, fmt.Errorf("unsupported source type: %s", renderCtx.SourceType)
 	}
 }

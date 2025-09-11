@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 )
@@ -16,7 +15,7 @@ func NewDirectoryRenderer() DirectoryRenderer {
 	return &directoryRenderer{}
 }
 
-func (dr *directoryRenderer) Execute(ctx context.Context, renderCtx *RenderContext, verbose bool) error {
+func (dr *directoryRenderer) Execute(ctx context.Context, renderCtx *RenderContext, verbose bool) (*RenderResult, error) {
 	searchPath := dr.getSearchPath(renderCtx)
 	recurse := dr.shouldRecurse(renderCtx)
 
@@ -48,10 +47,12 @@ func (dr *directoryRenderer) printVerboseInfo(searchPath string, recurse bool) {
 	fmt.Fprintf(os.Stderr, "---\n")
 }
 
-func (dr *directoryRenderer) walkAndOutputFiles(ctx context.Context, searchPath string, directory *ApplicationSourceDirectory, recurse bool) error {
+func (dr *directoryRenderer) walkAndOutputFiles(ctx context.Context, searchPath string, directory *ApplicationSourceDirectory, recurse bool) (*RenderResult, error) {
+	var output strings.Builder
+	var errorOutput strings.Builder
 	first := true
 
-	return filepath.Walk(searchPath, func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk(searchPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -62,14 +63,31 @@ func (dr *directoryRenderer) walkAndOutputFiles(ctx context.Context, searchPath 
 
 		if dr.shouldIncludeFile(path, searchPath, info, directory) {
 			if !first {
-				fmt.Println("---")
+				output.WriteString("---\n")
 			}
 			first = false
-			return dr.outputFile(ctx, path)
+
+			fileContent, err := dr.readFile(ctx, path)
+			if err != nil {
+				errorOutput.WriteString(fmt.Sprintf("Error reading file %s: %v\n", path, err))
+				return err
+			}
+			output.WriteString(fileContent)
 		}
 
 		return nil
 	})
+
+	result := &RenderResult{
+		Output: output.String(),
+		Error:  errorOutput.String(),
+	}
+
+	if err != nil {
+		return result, fmt.Errorf("directory walk failed: %w", err)
+	}
+
+	return result, nil
 }
 
 func (dr *directoryRenderer) handleDirectory(path, searchPath string, recurse bool) error {
@@ -97,11 +115,13 @@ func (dr *directoryRenderer) shouldIncludeFile(path, searchPath string, info os.
 	return dr.matchesPattern(relPath, directory.Include, directory.Exclude)
 }
 
-func (dr *directoryRenderer) outputFile(ctx context.Context, path string) error {
-	cmd := exec.CommandContext(ctx, "cat", path)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	return cmd.Run()
+func (dr *directoryRenderer) readFile(ctx context.Context, path string) (string, error) {
+	content, err := os.ReadFile(path)
+	if err != nil {
+		return "", fmt.Errorf("failed to read file %s: %w", path, err)
+	}
+
+	return string(content), nil
 }
 
 // isManifestFile checks if a file extension indicates a manifest file

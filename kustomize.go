@@ -56,13 +56,13 @@ type generatorOptions struct {
 	DisableNameSuffixHash bool              `yaml:"disableNameSuffixHash,omitempty"`
 }
 
-func (kr *kustomizeRenderer) Execute(ctx context.Context, renderCtx *RenderContext, opts *KustomizeOptions, verbose bool) error {
+func (kr *kustomizeRenderer) Execute(ctx context.Context, renderCtx *RenderContext, opts *KustomizeOptions, verbose bool) (*RenderResult, error) {
 	kustomizeBinary := kr.getBinaryPath(opts)
 	kustomizePath := kr.getKustomizePath(renderCtx)
 
 	workDir, cleanup, err := kr.prepareWorkDir(kustomizePath, renderCtx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if cleanup != nil {
 		defer cleanup()
@@ -117,16 +117,29 @@ func (kr *kustomizeRenderer) buildKustomizeArgs(workDir string, opts *KustomizeO
 	return args
 }
 
-func (kr *kustomizeRenderer) runKustomizeCommand(ctx context.Context, binary string, args []string, workDir string, verbose bool) error {
+func (kr *kustomizeRenderer) runKustomizeCommand(ctx context.Context, binary string, args []string, workDir string, verbose bool) (*RenderResult, error) {
 	cmd := exec.CommandContext(ctx, binary, args...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+
+	var stdout, stderr strings.Builder
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
 
 	if verbose {
 		kr.printVerboseInfo(binary, args, workDir)
 	}
 
-	return cmd.Run()
+	err := cmd.Run()
+
+	result := &RenderResult{
+		Output: stdout.String(),
+		Error:  stderr.String(),
+	}
+
+	if err != nil {
+		return result, fmt.Errorf("kustomize command failed: %w", err)
+	}
+
+	return result, nil
 }
 
 func (kr *kustomizeRenderer) printVerboseInfo(binary string, args []string, workDir string) {

@@ -46,7 +46,7 @@ func TestHelmRenderer_SkipCrdsOption(t *testing.T) {
 	os.Stderr = w
 
 	renderer := NewHelmRenderer()
-	err := renderer.Execute(context.Background(), renderCtx, nil, true)
+	_, err := renderer.Execute(context.Background(), renderCtx, nil, true)
 
 	w.Close()
 	os.Stderr = originalStderr
@@ -110,7 +110,7 @@ func TestHelmRenderer_HelmOptionsOverride(t *testing.T) {
 	os.Stderr = w
 
 	renderer := NewHelmRenderer()
-	err := renderer.Execute(context.Background(), renderCtx, helmOpts, true)
+	_, err := renderer.Execute(context.Background(), renderCtx, helmOpts, true)
 
 	w.Close()
 	os.Stderr = originalStderr
