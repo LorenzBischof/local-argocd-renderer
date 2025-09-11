@@ -1,4 +1,4 @@
-package internal
+package renderer
 
 import (
 	"context"
@@ -154,27 +154,27 @@ func TestGetAppSourceType_RepoPathAndAppPathCombination(t *testing.T) {
 		expectedType ApplicationSourceType
 	}{
 		{
-			name:       "detect helm in subdirectory",
-			appSubPath: "helm-app",
-			files:      []string{"helm-app/Chart.yaml"},
+			name:         "detect helm in subdirectory",
+			appSubPath:   "helm-app",
+			files:        []string{"helm-app/Chart.yaml"},
 			expectedType: ApplicationSourceTypeHelm,
 		},
 		{
-			name:       "detect kustomize in subdirectory",
-			appSubPath: "kustomize-app",
-			files:      []string{"kustomize-app/kustomization.yaml"},
+			name:         "detect kustomize in subdirectory",
+			appSubPath:   "kustomize-app",
+			files:        []string{"kustomize-app/kustomization.yaml"},
 			expectedType: ApplicationSourceTypeKustomize,
 		},
 		{
-			name:       "detect directory in nested path",
-			appSubPath: "apps/frontend",
-			files:      []string{"apps/frontend/deployment.yaml"},
+			name:         "detect directory in nested path",
+			appSubPath:   "apps/frontend",
+			files:        []string{"apps/frontend/deployment.yaml"},
 			expectedType: ApplicationSourceTypeDirectory,
 		},
 		{
-			name:       "helm in deep nested path",
-			appSubPath: "charts/services/api",
-			files:      []string{"charts/services/api/Chart.yaml"},
+			name:         "helm in deep nested path",
+			appSubPath:   "charts/services/api",
+			files:        []string{"charts/services/api/Chart.yaml"},
 			expectedType: ApplicationSourceTypeHelm,
 		},
 	}
@@ -187,7 +187,7 @@ func TestGetAppSourceType_RepoPathAndAppPathCombination(t *testing.T) {
 			// Create test files in the specified subdirectories
 			for _, file := range tt.files {
 				fullPath := filepath.Join(repoDir, file)
-				
+
 				// Create directory structure if needed
 				if err := os.MkdirAll(filepath.Dir(fullPath), 0755); err != nil {
 					t.Fatalf("Failed to create directory structure for %s: %v", file, err)

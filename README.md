@@ -125,41 +125,40 @@ import (
     "context"
     "fmt"
     
-    "github.com/argoproj/argo-cd/v3/pkg/apis/application/v1alpha1"
-    "github.com/lorenzbischof/local-argocd-renderer/internal"
+    renderer "github.com/lorenzbischof/local-argocd-renderer"
 )
 
 func main() {
-    // Define your Application
-    app := &v1alpha1.Application{
-        APIVersion: "argoproj.io/v1alpha1",
-        Kind:       "Application",
-        Spec: v1alpha1.ApplicationSpec{
-            Source: &v1alpha1.ApplicationSource{
-                RepoURL: "https://github.com/argoproj/argocd-example-apps.git",
-                Path:    "helm-guestbook",
+    // Create Application
+    app := &renderer.Application{
+        Name: "my-app",
+        Spec: renderer.ApplicationSpec{
+            Source: &renderer.ApplicationSource{
+                Path: "helm-guestbook",
+                Helm: &renderer.ApplicationSourceHelm{
+                    Values: "service:\n  type: LoadBalancer",
+                },
             },
-            Destination: v1alpha1.ApplicationDestination{
-                Server:    "https://kubernetes.default.svc",
+            Destination: renderer.ApplicationDestination{
                 Namespace: "default",
             },
         },
     }
     
     // Create render request
-    req := &internal.RenderRequest{
+    req := &renderer.RenderRequest{
         Application: app,
         RepoPath:    "./argocd-example-apps",
         KubeVersion: "1.28.0",
-        HelmOptions: &internal.HelmOptions{
+        HelmOptions: &renderer.HelmOptions{
             SkipCrds:  false,
             SkipTests: true,
         },
     }
     
     // Execute rendering
-    renderer := internal.NewRenderer()
-    err := renderer.ExecuteCommand(context.Background(), req, false)
+    r := renderer.NewRenderer()
+    err := r.ExecuteCommand(context.Background(), req, false)
     if err != nil {
         fmt.Printf("Error: %v\n", err)
     }
