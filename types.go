@@ -1,6 +1,9 @@
 package renderer
 
-import "context"
+import (
+	"context"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
 
 // ApplicationSourceType represents the type of application source
 type ApplicationSourceType string
@@ -13,8 +16,8 @@ const (
 
 // Application represents a simplified ArgoCD Application
 type Application struct {
-	Name string
-	Spec ApplicationSpec
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+	Spec              ApplicationSpec `json:"spec,omitempty"`
 }
 
 // ApplicationSpec represents the specification of an Application
