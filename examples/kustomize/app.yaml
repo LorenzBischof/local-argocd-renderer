@@ -1,0 +1,73 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kustomize-example-app
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/myorg/myrepo
+    path: examples/kustomize/input
+    kustomize:
+      # Override the name prefix
+      namePrefix: "staging-"
+
+      # Override the name suffix
+      nameSuffix: "-v2"
+
+      # Override common labels
+      commonLabels:
+        environment: "staging"
+        team: "platform"
+
+      # Override common annotations
+      commonAnnotations:
+        app.kubernetes.io/version: "2.1.0"
+
+      # Override images
+      images:
+      - "nginx:1.21"
+      - "my-app:nginx:latest"
+
+      # Override replica counts
+      replicas:
+      - name: my-app
+        count: 5
+
+      # Override namespace
+      namespace: "kustomize-demo"
+
+      # Add patches
+      patches:
+      - target:
+          kind: Deployment
+          name: my-app
+        patch: |-
+          - op: add
+            path: /spec/template/spec/containers/0/env
+            value:
+            - name: ENVIRONMENT
+              value: "staging"
+
+      # Add strategic merge patches
+      patchesStrategicMerge:
+      - |-
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata:
+          name: my-app
+        spec:
+          template:
+            spec:
+              containers:
+              - name: my-app
+                resources:
+                  requests:
+                    memory: "128Mi"
+                    cpu: "100m"
+                  limits:
+                    memory: "256Mi"
+                    cpu: "200m"
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default

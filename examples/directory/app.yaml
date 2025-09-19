@@ -1,0 +1,12 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: directory-app
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/myorg/myrepo
+    path: examples/directory/input
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default

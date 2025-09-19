@@ -1,0 +1,57 @@
+# Generated 3 manifests from 1 sources (3 after deduplication)
+---
+apiVersion: v1
+data:
+  message: Hello from Helm example!
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/instance: helm-example-app
+  name: helm-example-config
+  namespace: helm-namespace
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/instance: helm-example-app
+  name: helm-example-deployment
+  namespace: helm-namespace
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: helm-example
+  template:
+    metadata:
+      labels:
+        app: helm-example
+    spec:
+      containers:
+      - env:
+        - name: MESSAGE
+          valueFrom:
+            configMapKeyRef:
+              key: message
+              name: helm-example-config
+        image: nginx:1.21
+        imagePullPolicy: IfNotPresent
+        name: helm-example
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/instance: helm-example-app
+  name: helm-example-service
+  namespace: helm-namespace
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 80
+  selector:
+    app: helm-example
+  type: ClusterIP

@@ -1,0 +1,37 @@
+# Generated 1 manifests from 1 sources (1 after deduplication)
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    app.kubernetes.io/version: 2.1.0
+  labels:
+    app.kubernetes.io/instance: kustomize-example-app
+    environment: staging
+    team: platform
+  name: staging-my-app-v2
+  namespace: kustomize-demo
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: my-app
+      environment: staging
+      team: platform
+  template:
+    metadata:
+      annotations:
+        app.kubernetes.io/version: 2.1.0
+      labels:
+        app: my-app
+        environment: staging
+        team: platform
+    spec:
+      containers:
+      - env:
+        - name: ENVIRONMENT
+          value: staging
+        image: nginx:1.21
+        name: my-app
+        ports:
+        - containerPort: 80

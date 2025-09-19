@@ -12,4 +12,6 @@
     pkgs.kustomize
   ];
 
+  languages.go.enable = true;
+  env.CGO_ENABLED = false;
 }

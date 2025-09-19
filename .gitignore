@@ -1,6 +1,4 @@
-main
-argocd
-/local-argocd-renderer
+local-argocd-renderer
 
 # Devenv
 .devenv*

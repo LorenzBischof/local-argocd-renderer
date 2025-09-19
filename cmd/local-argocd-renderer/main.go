@@ -4,155 +4,57 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"io"
 	"os"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/yaml"
-
 	renderer "github.com/lorenzbischof/local-argocd-renderer"
+	"sigs.k8s.io/yaml"
 )
 
-type options struct {
-	appFile        string
-	repoPath       string
-	kubeVersion    string
-	helmSkipCrds   bool
-	helmSkipTests  bool
-	kustomizeBuild string
-	verbose        bool
-}
-
 func main() {
-	opts := parseFlags()
-
-	app, err := loadApplication(opts.appFile)
-	exitOnError(err, "loading application")
-
-	req := buildRenderRequest(app, opts)
-
-	r := renderer.NewRenderer()
-	result, err := r.ExecuteCommand(context.Background(), req, opts.verbose)
-	exitOnError(err, "executing command")
-
-	// Print the output to stdout
-	fmt.Print(result.Output)
-
-	// Print any error output to stderr
-	if result.Error != "" {
-		fmt.Fprint(os.Stderr, result.Error)
-	}
-}
-
-func parseFlags() *options {
-	opts := &options{}
-	flag.StringVar(&opts.appFile, "app", "", "Path to ArgoCD Application YAML file (use '-' for stdin)")
-	flag.StringVar(&opts.repoPath, "repo", "", "Path to local repository containing manifests (required)")
-	flag.StringVar(&opts.kubeVersion, "kube-version", "", "Kubernetes version to use for rendering (optional)")
-	flag.BoolVar(&opts.helmSkipCrds, "helm-skip-crds", false, "Skip CRDs when rendering Helm charts")
-	flag.BoolVar(&opts.helmSkipTests, "helm-skip-tests", false, "Skip tests when rendering Helm charts")
-	flag.StringVar(&opts.kustomizeBuild, "kustomize-build-options", "", "Additional kustomize build options")
-	flag.BoolVar(&opts.verbose, "verbose", false, "Verbose output showing commands")
+	var applicationFile = flag.String("app", "", "Path to Application CRD YAML file (use '-' for stdin) (required)")
 	flag.Parse()
 
-	// If no --app flag specified or it's "-", use stdin
-	if opts.appFile == "" || opts.appFile == "-" {
-		// Check if stdin has data
-		stat, err := os.Stdin.Stat()
-		if err != nil || (stat.Mode()&os.ModeCharDevice) != 0 {
-			exitWithUsage("--app flag is required or provide application YAML via stdin")
-		}
-		opts.appFile = "-"
-	}
-
-	if opts.repoPath == "" {
-		exitWithUsage("--repo flag is required")
-	}
-
-	return opts
-}
-
-func buildRenderRequest(app *renderer.Application, opts *options) *renderer.RenderRequest {
-	req := &renderer.RenderRequest{
-		Application: app,
-		RepoPath:    opts.repoPath,
-		KubeVersion: opts.kubeVersion,
-	}
-
-	if opts.helmSkipCrds || opts.helmSkipTests {
-		req.HelmOptions = &renderer.HelmOptions{
-			SkipCrds:  opts.helmSkipCrds,
-			SkipTests: opts.helmSkipTests,
-		}
-	}
-
-	if opts.kustomizeBuild != "" {
-		req.KustomizeOptions = &renderer.KustomizeOptions{
-			BuildOptions: opts.kustomizeBuild,
-		}
-	}
-
-	return req
-}
-
-func exitOnError(err error, context string) {
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error %s: %v\n", context, err)
+	if *applicationFile == "" {
+		fmt.Fprintf(os.Stderr, "Error: --application flag is required\n")
+		fmt.Fprintf(os.Stderr, "Usage: %s --application <file> | --application -\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "Examples:\n")
+		fmt.Fprintf(os.Stderr, "  %s --application app.yaml\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "  cat app.yaml | %s --application -\n", os.Args[0])
 		os.Exit(1)
 	}
-}
 
-func exitWithUsage(msg string) {
-	fmt.Fprintf(os.Stderr, "Error: %s\n", msg)
-	flag.Usage()
-	os.Exit(1)
-}
+	ctx := context.Background()
+	opts := renderer.TemplateOptions{
+		ApplicationFile: *applicationFile,
+		RepoRoot:        ".",
+	}
 
-func loadApplication(filePath string) (*renderer.Application, error) {
-	var data []byte
-	var err error
+	result, err := renderer.TemplateFromApplication(ctx, opts)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
 
-	if filePath == "-" {
-		data, err = io.ReadAll(os.Stdin)
-		if err != nil {
-			return nil, fmt.Errorf("failed to read from stdin: %w", err)
+	// Report any warnings
+	for _, warning := range result.Warnings {
+		fmt.Fprintf(os.Stderr, "Warning: %s\n", warning)
+	}
+
+	fmt.Printf("# Generated %d manifests\n", len(result.Objects))
+	fmt.Println("---")
+
+	// Parse and output manifests
+	for i, object := range result.Objects {
+		if i > 0 {
+			fmt.Println("---")
 		}
-	} else {
-		data, err = os.ReadFile(filePath)
+
+		yamlBytes, err := yaml.Marshal(object)
 		if err != nil {
-			return nil, fmt.Errorf("failed to read application file: %w", err)
+			fmt.Println(err)
+			os.Exit(1)
 		}
-	}
 
-	var appYaml struct {
-		APIVersion string `yaml:"apiVersion"`
-		Kind       string `yaml:"kind"`
-		Metadata   struct {
-			Name string `yaml:"name"`
-		} `yaml:"metadata"`
-		Spec struct {
-			Source      *renderer.ApplicationSource     `yaml:"source"`
-			Destination renderer.ApplicationDestination `yaml:"destination"`
-		} `yaml:"spec"`
+		fmt.Printf("%s", yamlBytes)
 	}
-
-	if err := yaml.Unmarshal(data, &appYaml); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal application YAML: %w", err)
-	}
-
-	if appYaml.Kind != "Application" {
-		return nil, fmt.Errorf("expected kind 'Application', got '%s'", appYaml.Kind)
-	}
-
-	app := &renderer.Application{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: appYaml.Metadata.Name,
-		},
-		Spec: renderer.ApplicationSpec{
-			Source:      appYaml.Spec.Source,
-			Destination: appYaml.Spec.Destination,
-		},
-	}
-
-	return app, nil
 }

@@ -1,0 +1,14 @@
+# Default values for helm-example
+replicaCount: 1
+
+image:
+  repository: nginx
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 80
+
+config:
+  message: "Hello from Helm example!"

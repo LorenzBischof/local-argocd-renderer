@@ -1,0 +1,45 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: helm-online-kustomize-app
+spec:
+  project: default
+  sources:
+  - repoURL: oci://registry-1.docker.io/cloudpirates
+    chart: nginx
+    targetRevision: 0.1.6
+    helm:
+      parameters:
+      - name: image.tag
+        value: "1.21"
+      - name: replicaCount
+        value: "2"
+      - name: service.type
+        value: "ClusterIP"
+  - repoURL: https://github.com/myorg/myrepo
+    path: examples/kustomize/input
+    kustomize:
+      # Override the name prefix
+      namePrefix: "local-"
+
+      # Override common labels
+      commonLabels:
+        environment: "local"
+        team: "platform"
+
+      # Override images
+      images:
+      - "nginx:1.21"
+      - "my-app:nginx:latest"
+
+      # Override replica counts
+      replicas:
+      - name: my-app
+        count: 3
+
+      # Override namespace
+      namespace: "local-demo"
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: helm-online-kustomize
