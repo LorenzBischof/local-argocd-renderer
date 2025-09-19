@@ -5,7 +5,9 @@ go 1.24.6
 require (
 	github.com/argoproj/argo-cd/v3 v3.1.6
 	github.com/sergi/go-diff v1.4.0
+	github.com/stretchr/testify v1.10.0
 	k8s.io/apimachinery v0.33.1
+	sigs.k8s.io/e2e-framework v0.6.0
 	sigs.k8s.io/yaml v1.6.0
 )
 
@@ -23,7 +25,7 @@ require (
 	github.com/ProtonMail/go-crypto v1.1.6 // indirect
 	github.com/TomOnTime/utfutil v1.0.0 // indirect
 	github.com/argoproj/gitops-engine v0.7.1-0.20250905160054-e48120133eec // indirect
-	github.com/argoproj/pkg v0.13.6 // indirect
+	github.com/argoproj/pkg v0.13.7-0.20230626144333-d56162821bd1 // indirect
 	github.com/argoproj/pkg/v2 v2.0.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
@@ -119,7 +121,7 @@ require (
 	github.com/skeema/knownhosts v1.3.1 // indirect
 	github.com/spf13/cobra v1.9.1 // indirect
 	github.com/spf13/pflag v1.0.6 // indirect
-	github.com/stretchr/testify v1.10.0 // indirect
+	github.com/vladimirvivien/gexe v0.4.1 // indirect
 	github.com/vmihailenco/go-tinylfu v0.2.2 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
